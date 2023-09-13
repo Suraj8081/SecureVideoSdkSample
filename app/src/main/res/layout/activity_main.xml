@@ -9,8 +9,7 @@
         android:id="@+id/et_url"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter Media id"
-        android:text="2956d28820" />
+        android:hint="Enter Media id" />
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_vod"
