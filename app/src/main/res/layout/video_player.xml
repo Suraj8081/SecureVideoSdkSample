@@ -54,7 +54,7 @@
         android:background="@color/colorPrimary"
         android:gravity="center"
         android:padding="5dp"
-        android:text="Download"
+        android:text="View Downloads"
         android:textColor="@color/white" />
 
 

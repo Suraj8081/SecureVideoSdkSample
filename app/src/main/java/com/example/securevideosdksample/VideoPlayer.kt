@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.example.securevideosdksample.MainActivity.Companion.fileNme
 import com.example.securevideosdksample.databinding.VideoPlayerBinding
+import com.example.securevideosdksample.download.activity.DownloadedVideoActivity
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.ExoPlayer
@@ -103,6 +104,7 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
 
     val siteId = "28"
     val userId = "1"
+    val courseId = "232"
     val accesskey = "kgqKfABcXinpGmYJEtTHbvCOuFzWxVjh"
     val secretKey = "MxfLH8DtplaYwWZdFvc15kURQ7hPSCzyVJO9Io30Ku6Nsmj4qeXGr2giTnBbAE"
 
@@ -154,41 +156,12 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                 getPlayer(mediaSource)
             } else if (vodUrl.isNotEmpty()) {
                 val licenceUrl = VideoPlayerInit.getInstance(this@VideoPlayer)
-                    ?.prePareLicense(siteId, accesskey, mediaId, userId, 30,C.WIDEVINE_UUID)
+                    ?.prePareLicense(siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID)
                 licenceUrl?.let { it1 -> playDrmVideo(vodUrl, it1) }
             }
         }
 
-        registerReceiver(onDownloadComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 
-
-    }
-
-
-    private val onDownloadComplete: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-            if (downloadID == id) {
-                if (downloadFilePath!!.exists()) {
-                    binding.download.text = "Downloaded"
-                    binding.quality.isVisible = false
-                    if (VideoPlayerInit.getInstance(this@VideoPlayer)?.encrypt(
-                            downloadFilePath!!.absolutePath, downloadList[0].meta.password
-                        ) == true
-                    ) {
-                        password = downloadList[0].meta.password
-                        Toast.makeText(
-                            this@VideoPlayer, "Video Downloaded Successfully", Toast.LENGTH_SHORT
-                        ).show()
-                        releasePlayer()
-                        val videoURL = downloadFilePath!!.absoluteFile.toString()
-                        shouldAutoPlay = true
-                        val mediaSource = buildMediaSource(Uri.parse(videoURL), applicationContext)
-                        getPlayer(mediaSource)
-                    }
-                }
-            }
-        }
     }
 
 
@@ -198,7 +171,6 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
         if (Util.SDK_INT <= 23) {
             releasePlayer()
         }
-        unregisterReceiver(onDownloadComplete)
 
         downloadFilePath?.let {
             VideoPlayerInit.getInstance(this@VideoPlayer)
@@ -243,10 +215,9 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
         binding.download.isVisible = !videoType
 
         if (offline) {
-            downloadFilePath =
-                File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + "/.Videos/" + fileNme)
+            downloadFilePath = intent?.extras?.getString("filePath", "")?.let { File(it) }
             binding.quality.isVisible = false
-            binding.download.text = "Downloaded"
+            binding.download.isVisible = false
 
         } else {
             VideoPlayerInit.getInstance(this)
@@ -337,14 +308,19 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
 
 
         binding.download.setOnClickListener {
-            if (binding.download.text.toString() == "Download") {
-                if (downloadList.size > 0) {
-                    pausePlayer()
-
-                    downloadVideoDialog(downloadList)
-
-                }
-
+            if (downloadList.size > 0) {
+                pausePlayer()
+                val intent = Intent(this, DownloadedVideoActivity::class.java)
+                val bundle = Bundle()
+                bundle.putString("downloadList", Gson().toJson(downloadList))
+                ////////////example video like
+                bundle.putString("videoId", mediaId.substring(0, 2))
+                bundle.putString("mediaId", mediaId)
+                bundle.putString("userId", userId)
+                bundle.putString("courseId", courseId)
+                intent.putExtras(bundle)
+                startActivity(intent)
+                finish()
             }
 
         }
@@ -366,48 +342,8 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                     dialog?.cancel()
                     releasePlayer()
                     val licenceUrl = VideoPlayerInit.getInstance(this@VideoPlayer)
-                        ?.prePareLicense(siteId, accesskey, mediaId, userId, 30,C.WIDEVINE_UUID)
+                        ?.prePareLicense(siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID)
                     licenceUrl?.let { it1 -> playDrmVideo(link[selectedQualityIndex].url, it1) }
-                }
-
-
-            }
-
-            alertDialog.setNegativeButton("Cancel") { dialog: DialogInterface, which: Int ->
-                dialog.dismiss()
-                dialog.cancel()
-            }
-
-            alertDialog.setOnCancelListener { it ->
-                it.cancel()
-                it.dismiss()
-            }
-
-            val alert = alertDialog.create()
-            alert.setCanceledOnTouchOutside(false)
-            alert.show()
-        }
-
-
-    }
-
-
-    private fun downloadVideoDialog(link: List<UrlResponse>?) {
-        var alertPosition = downloadPos
-        link?.map { it.label }?.toTypedArray()?.let {
-            val alertDialog = AlertDialog.Builder(this@VideoPlayer)
-            alertDialog.setTitle("Download Video")
-            alertDialog.setSingleChoiceItems(it, (downloadPos)) { _, which ->
-                alertPosition = which
-            }
-
-            alertDialog.setPositiveButton("OK") { dialog: DialogInterface?, which: Int ->
-                if (alertPosition != downloadPos) {
-                    downloadPos = alertPosition
-                    dialog?.dismiss()
-                    dialog?.cancel()
-                    beginDownload(downloadList[downloadPos].url)
-
                 }
 
 
@@ -572,8 +508,10 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                     getPlayer(mediaSource)
                 } else {
                     if (onlinePlayList.size > 0) {
-                        val licenceUrl = VideoPlayerInit.getInstance(this@VideoPlayer)
-                            ?.prePareLicense(siteId, accesskey, mediaId, userId, 30,C.WIDEVINE_UUID)
+                        val licenceUrl =
+                            VideoPlayerInit.getInstance(this@VideoPlayer)?.prePareLicense(
+                                    siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID
+                                )
                         licenceUrl?.let { it1 -> playDrmVideo(vodUrl, it1) }
                     }
                 }
@@ -766,8 +704,10 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                                 }
                             }
                             if (onlinePlayList.size > 0) {
-                                val licenceUrl = VideoPlayerInit.getInstance(this@VideoPlayer)
-                                    ?.prePareLicense(siteId, accesskey, mediaId, userId, 30,C.WIDEVINE_UUID)
+                                val licenceUrl =
+                                    VideoPlayerInit.getInstance(this@VideoPlayer)?.prePareLicense(
+                                            siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID
+                                        )
                                 licenceUrl?.let { it1 -> playDrmVideo(onlinePlayList[0].url, it1) }
                             }
                             if (downloadList.size > 0) {
@@ -784,76 +724,6 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
         }
 
 
-    }
-
-
-    private fun beginDownload(url: String) {
-        try {
-//            var fileName = url.substring(url.lastIndexOf('/') + 1)
-//            fileName = fileName.substring(0, 1).uppercase(Locale.getDefault()) + fileName.substring(1)
-//
-
-
-            downloadFilePath =
-                File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + "/.Videos/" + fileNme)
-            if (!downloadFilePath!!.exists()) {
-                binding.download.text = "Download Running.."
-                val request = DownloadManager.Request(Uri.parse(url))
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED) // Visibility of the download Notification
-                    .setDestinationUri(Uri.fromFile(downloadFilePath)).setTitle(fileNme)
-                    .setDescription("Downloading")
-                val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-                downloadID =
-                    downloadManager.enqueue(request) // enqueue puts the download request in the queue.
-                AsyncTask.execute {
-                    var finishDownload = false
-                    var progress: Int
-                    while (!finishDownload) {
-                        val cursor =
-                            downloadManager.query(DownloadManager.Query().setFilterById(downloadID))
-                        if (cursor.moveToFirst()) {
-                            when (cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))) {
-                                DownloadManager.STATUS_FAILED -> {
-                                    finishDownload = true
-                                }
-
-                                DownloadManager.STATUS_PAUSED, DownloadManager.STATUS_PENDING -> {}
-                                DownloadManager.STATUS_RUNNING -> {
-                                    val total =
-                                        cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-                                    if (total >= 0) {
-                                        val downloaded = cursor.getLong(
-                                            cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                                        )
-                                        progress = (downloaded * 100L / total).toInt()
-                                        Log.d("beginDownload", "beginDownload: '$progress")
-
-                                    }
-                                }
-
-                                DownloadManager.STATUS_SUCCESSFUL -> {
-                                    progress = 100
-                                    finishDownload = true
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                binding.download.text = "Downloaded"
-                downloadFilePath = null
-                Toast.makeText(this, "Video is Already Downloaded", Toast.LENGTH_SHORT).show()
-            }
-
-            // using query method
-        } catch (e: java.lang.Exception) {
-            downloadFilePath?.let {
-                it.delete()
-                binding.download.text = "Download"
-                downloadFilePath = null
-            }
-            e.printStackTrace()
-        }
     }
 
 
