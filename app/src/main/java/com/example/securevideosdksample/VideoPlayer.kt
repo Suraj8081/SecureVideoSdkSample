@@ -102,11 +102,11 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
     val downloadList = mutableListOf<UrlResponse>()
     val onlinePlayList = mutableListOf<UrlResponse>()
 
-    val siteId = "28"
-    val userId = "1"
+    val siteId = "XX"
+    val userId = "XX"
     val courseId = "232"
-    val accesskey = "kgqKfABcXinpGmYJEtTHbvCOuFzWxVjh"
-    val secretKey = "MxfLH8DtplaYwWZdFvc15kURQ7hPSCzyVJO9Io30Ku6Nsmj4qeXGr2giTnBbAE"
+    val accesskey = "XXXXXXXXXX"
+    val secretKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
     /////////recorder
     var mediaId = ""
