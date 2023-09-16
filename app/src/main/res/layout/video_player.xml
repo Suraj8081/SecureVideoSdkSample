@@ -48,13 +48,28 @@
         android:layout_width="wrap_content"
         android:layout_height="50dp"
         android:layout_below="@id/root_new"
-        android:layout_centerHorizontal="true"
+        android:layout_alignParentStart="true"
         android:layout_marginTop="5dp"
         android:layout_marginEnd="10dp"
         android:background="@color/colorPrimary"
         android:gravity="center"
         android:padding="5dp"
-        android:text="Download"
+        android:text="View Downloads"
+        android:textColor="@color/white" />
+
+    <TextView
+        android:id="@+id/playVideoDownloaded"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:layout_below="@id/root_new"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="10dp"
+        android:background="@color/colorPrimary"
+        android:gravity="center"
+        android:padding="5dp"
+        android:visibility="gone"
+        android:text="Offline Play"
         android:textColor="@color/white" />
 
 
