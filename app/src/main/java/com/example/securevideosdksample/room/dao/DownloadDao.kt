@@ -40,9 +40,7 @@ interface DownloadDao {
     ): Int
 
     @Query("SELECT * FROM downloadVideo  WHERE videoId = :videoid AND isComplete =:complete  AND userId =:userid AND courseId =:courseId")
-    suspend fun getVideoIsComplete(
-        videoid: String?, userid: String?, complete: String?, courseId: String?
-    ): DownloadVideoTable?
+    suspend fun getVideoIsComplete(videoid: String?, userid: String?, complete: String?, courseId: String?): DownloadVideoTable?
 
 
     @Query("SELECT EXISTS(SELECT * FROM downloadVideo WHERE videoId = :video_id  AND userId = :userId AND courseId = :course_id)")

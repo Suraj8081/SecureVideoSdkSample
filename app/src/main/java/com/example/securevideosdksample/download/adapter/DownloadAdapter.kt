@@ -28,8 +28,7 @@ class DownloadAdapter(
         RecyclerView.ViewHolder(binding.root) {}
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
-        val binding =
-            DownloadedVideoItemsBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        val binding = DownloadedVideoItemsBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return MyViewHolder(binding)
     }
 
@@ -195,4 +194,6 @@ class MyDownloadsDiffUtil : DiffUtil.ItemCallback<DownloadVideoTable>() {
 
     }
 }
+
+
 

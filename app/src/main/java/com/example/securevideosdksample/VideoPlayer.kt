@@ -1,16 +1,12 @@
 package com.example.securevideosdksample
 
 import android.app.AlertDialog
-import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.net.Uri
-import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
@@ -24,13 +20,15 @@ import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.RelativeLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import com.example.securevideosdksample.MainActivity.Companion.fileNme
 import com.example.securevideosdksample.databinding.VideoPlayerBinding
 import com.example.securevideosdksample.download.activity.DownloadedVideoActivity
+import com.example.securevideosdksample.downloadService.DownloadService
+import com.example.securevideosdksample.model.UrlResponse
+import com.example.securevideosdksample.room.CareerwillDatabase
+import com.example.securevideosdksample.room.table.DownloadVideoTable
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.ExoPlayer
@@ -61,7 +59,10 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.securevideo.sdk.helper.InitializeMyAppPlayer
 import com.securevideo.sdk.helper.VideoPlayerInit
-import com.example.securevideosdksample.model.UrlResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.net.CookieHandler
@@ -92,8 +93,8 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
     private var resumePosition: Long = 0
     private var mFullScreenIcon: ImageView? = null
 
-    var cookieValue = ""
-    var is_live = ""
+    private var cookieValue = ""
+    private var is_live = ""
 
     private var downloadID: Long = 0
 
@@ -102,20 +103,24 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
     val downloadList = mutableListOf<UrlResponse>()
     val onlinePlayList = mutableListOf<UrlResponse>()
 
+    /* set your cred details*/
     val siteId = "XX"
     val userId = "XX"
-    val courseId = "232"
-    val accesskey = "XXXXXXXXXX"
-    val secretKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    private val courseId = "XXXXX"
+    val accesskey = "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    val secretKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
     /////////recorder
     var mediaId = ""
-    var videoType = false
-    var offline = false
+    private var videoId = ""
+    private var videoType = false
+    private var offline = false
+    private var downloadVideoData: DownloadVideoTable? = null
 
     private var liveurl: String = ""
     private var vodUrl: String = ""
     private var password: String = ""
+
 
     companion object {
         private var DEFAULT_COOKIE_MANAGER: CookieManager? = null
@@ -203,6 +208,7 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
             videoType = it.getBoolean("videoType", false)
             offline = it.getBoolean("offline", false)
             password = it.getString("password", "")
+            videoId = it.getString("videoId", "")
         }
 
 
@@ -218,8 +224,18 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
             downloadFilePath = intent?.extras?.getString("filePath", "")?.let { File(it) }
             binding.quality.isVisible = false
             binding.download.isVisible = false
-
         } else {
+            if (!videoType) {
+                CareerwillDatabase.getInstance(this)?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        it.downloadDao().getVideoData(videoId, userId, courseId)?.let {
+                            withContext(Dispatchers.Main) {
+                                offlinePlay(it)
+                            }
+                        }
+                    }
+                }
+            }
             VideoPlayerInit.getInstance(this)
                 ?.initialize(this, userId, siteId, accesskey, secretKey, mediaId, videoType)
         }
@@ -314,7 +330,7 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                 val bundle = Bundle()
                 bundle.putString("downloadList", Gson().toJson(downloadList))
                 ////////////example video like
-                bundle.putString("videoId", mediaId.substring(0, 2))
+                bundle.putString("videoId", videoId)
                 bundle.putString("mediaId", mediaId)
                 bundle.putString("userId", userId)
                 bundle.putString("courseId", courseId)
@@ -367,6 +383,43 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
 
     }
 
+    private fun offlinePlay(downloadVideoTable: DownloadVideoTable) {
+        val file =
+            File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADED_VIDEOS + downloadVideoTable.fileName + ".mp4")
+        val fileProcessing =
+            File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADING_VIDEOS + downloadVideoTable.fileName + ".mp4")
+
+        if (downloadVideoTable.percentage >= 100) {
+            if (file.exists()) {
+                downloadVideoData = downloadVideoTable
+                binding.playVideoDownloaded.isVisible = true
+            } else if (fileProcessing.exists()) {
+                downloadVideoData = downloadVideoTable
+                binding.playVideoDownloaded.isVisible = true
+            }
+        }
+        binding.playVideoDownloaded.setOnClickListener {
+            downloadVideoData?.let {
+                if (file.exists()) {
+                    restartPlayer(file, it.token)
+                } else if (fileProcessing.exists()) {
+                    restartPlayer(fileProcessing, it.token)
+                }
+            }
+        }
+    }
+
+    private fun restartPlayer(file: File, token: String) {
+        pausePlayer()
+        releasePlayer()
+        binding.quality.isVisible = false
+        binding.playVideoDownloaded.isVisible = false
+        downloadFilePath = file
+        password = token
+        VideoPlayerInit.getInstance(this@VideoPlayer)?.encrypt(file.absolutePath, token)
+        shouldAutoPlay = true
+        getPlayer(buildMediaSource(Uri.parse(file.absolutePath), applicationContext))
+    }
 
     private fun landscapePlayer() {
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);

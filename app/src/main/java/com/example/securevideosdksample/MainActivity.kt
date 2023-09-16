@@ -10,28 +10,20 @@ import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
-    private var _binding: ActivityMainBinding? = null
-    val binding get() = _binding!!
-
-
-    companion object{
-        val fileNme = "Encrypted.mp4"
-
-    }
+    private var binding: ActivityMainBinding? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        _binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding!!.root)
 
-
-        binding.btnVod.setOnClickListener {
-            if (binding.etUrl.text.isNotEmpty())
-            {
-                val bundle =Bundle()
+        binding!!.btnVod.setOnClickListener {
+            if (binding!!.etUrl.text.isNotEmpty()) {
+                val bundle = Bundle()
                 bundle.apply {
-                    putString("mediaId",binding.etUrl.text.toString())
-                    putBoolean("videoType",false)
+                    putString("mediaId", binding!!.etUrl.text.toString())
+                    putString("videoId",binding!!.etUrl.text.toString().substring(0,2))
+                    putBoolean("videoType", false)
                 }
                 Intent(this, VideoPlayer::class.java).apply {
                     putExtras(bundle)
@@ -40,12 +32,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.btnLive.setOnClickListener{
-            if (binding.etUrl.text.isNotEmpty()) {
-                val bundle =Bundle()
+        binding!!.btnLive.setOnClickListener {
+            if (binding!!.etUrl.text.isNotEmpty()) {
+                val bundle = Bundle()
                 bundle.apply {
-                    putString("mediaId",binding.etUrl.text.toString())
-                    putBoolean("videoType",true)
+                    putString("mediaId", binding!!.etUrl.text.toString())
+                    putBoolean("videoType", true)
                 }
                 Intent(this, VideoPlayer::class.java).apply {
                     putExtras(bundle)
@@ -58,5 +50,8 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-
+    override fun onDestroy() {
+        super.onDestroy()
+        binding =null
+    }
 }

@@ -42,7 +42,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
     var downloadList = mutableListOf<UrlResponse>()
 
 
-    companion object {
+    companion object{
         const val DOWNLOAD_RUNNING = "Downloading Running"
         const val DOWNLOAD_PAUSE = "Downloading Pause"
         const val DOWNLOADED = "Downloaded"
@@ -52,7 +52,6 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
         private const val REQUEST_PERMISSION_PHONE_STATE = 1
 
     }
-
     lateinit var binding: FragmentDownalodedVideoBinding
 
     private lateinit var downloadVideoModel: DownloadVideoModel
@@ -60,8 +59,8 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
     var userId = ""
     lateinit var downloadVideoList: List<DownloadVideoTable>
     var courseId = ""
-    private var videoId = ""
-    private var mediaId = ""
+    private var videoId=""
+    private var mediaId=""
 
 
     private var careerwillDatabase: CareerwillDatabase? = null
@@ -71,14 +70,14 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
         setContentView(binding.root)
 
         intent?.extras?.let {
-            videoId = it.getString("videoId", "")
-            mediaId = it.getString("mediaId", "")
-            courseId = it.getString("courseId", "")
-            userId = it.getString("userId", "")
-            val urlResponse = it.getString("downloadList", "")
-            if (urlResponse.isNotEmpty()) {
-                downloadList =
-                    Gson().fromJsonList<UrlResponse>(urlResponse.toString()).toMutableList()
+            videoId =it.getString("videoId","")
+            mediaId =it.getString("mediaId","")
+            courseId =it.getString("courseId","")
+            userId =it.getString("userId","")
+            val urlResponse =it.getString("downloadList","")
+            if (urlResponse.isNotEmpty())
+            {
+                downloadList = Gson().fromJsonList<UrlResponse>(urlResponse.toString()).toMutableList()
             }
         }
         careerwillDatabase = CareerwillDatabase.getInstance(this)
@@ -86,7 +85,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
         downloadVideoModel = ViewModelProvider(this, factory)[DownloadVideoModel::class.java]
         downloadAdapter = DownloadAdapter(this, this, userId)
         binding.rvVideos.adapter = downloadAdapter
-        downloadVideoModel.getAllUserData(userId, courseId)
+        downloadVideoModel.getAllUserData(userId,courseId)
         downloadVideoModel.data.observe(this) {
             it?.let {
                 downloadVideoModel.removeObserverData()
@@ -108,45 +107,28 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     private fun notficationPermisson() {
         if (Build.VERSION.SDK_INT > 32) {
-            val permissionCheck =
-                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-                if (ActivityCompat.shouldShowRequestPermissionRationale(
-                        this, Manifest.permission.POST_NOTIFICATIONS
-                    )
-                ) {
-                    requestPermission(
-                        Manifest.permission.POST_NOTIFICATIONS, REQUEST_PERMISSION_PHONE_STATE
-                    )
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.POST_NOTIFICATIONS)) {
+                    requestPermission(Manifest.permission.POST_NOTIFICATIONS, REQUEST_PERMISSION_PHONE_STATE)
 
                 } else {
-                    requestPermission(
-                        Manifest.permission.POST_NOTIFICATIONS, REQUEST_PERMISSION_PHONE_STATE
-                    )
+                    requestPermission(Manifest.permission.POST_NOTIFICATIONS, REQUEST_PERMISSION_PHONE_STATE)
                 }
             }
         }
 
     }
-
     private fun requestPermission(permissionName: String, permissionRequestCode: Int) {
         ActivityCompat.requestPermissions(this, arrayOf(permissionName), permissionRequestCode)
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         when (requestCode) {
             REQUEST_PERMISSION_PHONE_STATE -> if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(
-                    this@DownloadedVideoActivity, "Permission Granted!", Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this@DownloadedVideoActivity, "Permission Granted!", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(
-                    this@DownloadedVideoActivity,
-                    "Permission Need For Notidcation!",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this@DownloadedVideoActivity, "Permission Need For Notidcation!", Toast.LENGTH_SHORT).show()
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -154,6 +136,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     private inline fun <reified T> Gson.fromJsonList(json: String): List<T> =
         fromJson(json, object : TypeToken<List<T>>() {}.type)
+
 
 
     private fun downloadVideoDialog(link: List<UrlResponse>?) {
@@ -191,28 +174,18 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     private fun beginDownload(urlResponse: UrlResponse) {
         val videoname = urlResponse.url.substring(urlResponse.url.lastIndexOf('/') + 1)
-        val fileName = "${videoId}_${userId}_${courseId}"
-        val downloadTable = DownloadVideoTable(
-            name = videoname,
-            videoId = videoId,
-            videoUrl = urlResponse.url,
-            token = urlResponse.meta.password,
-            videoStatus = "Downloading Running",
-            thumbnail_url = "",
-            userId = userId,
-            fileName = fileName,
-            courseId = courseId
-        )
-        careerwillDatabase?.let { db ->
+        val fileName ="${videoId}_${userId}_${courseId}"
+        val downloadTable =   DownloadVideoTable(name = videoname, videoId = videoId, videoUrl = urlResponse.url, token = urlResponse.meta.password, videoStatus = "Downloading Running", thumbnail_url = "", userId = userId, fileName = fileName, courseId = courseId)
+        careerwillDatabase?.let {db->
             CoroutineScope(Dispatchers.IO).launch {
                 val result = db.downloadDao().isRecordExist(videoId, userId, courseId)
-                if (!result) {
+                if (!result)
+                {
                     db.downloadDao().insert(downloadTable).let {
-                        withContext(Dispatchers.Main) {
-                            downloadVideoModel.getAllUserData(userId, courseId)
+                        withContext(Dispatchers.Main){
+                            downloadVideoModel.getAllUserData(userId,courseId)
 
-                            val videoDownloadIntent =
-                                Intent(this@DownloadedVideoActivity, DownloadService::class.java)
+                            val videoDownloadIntent = Intent(this@DownloadedVideoActivity, DownloadService::class.java)
                             videoDownloadIntent.apply {
                                 putExtra(DownloadService.VIDEONAME, videoname)
                                 putExtra(DownloadService.DOWNLOAD_SERVICE_ID, videoId)
@@ -220,7 +193,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
                                 putExtra("userId", userId)
                                 putExtra("filePath", "${videoId}_${userId}_${courseId}")
                                 putExtra("status", "Downloading Running")
-                                putExtra("course_id", courseId)
+                                putExtra("course_id",courseId)
                                 putExtra(DownloadService.FILEDOWNLOADSTATUS, false)
                             }
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -231,19 +204,18 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
                         }
                     }
 
-                } else {
+                }else{
                     db.downloadDao().getVideoData(videoId, userId, courseId)?.let {
-                        withContext(Dispatchers.Main) {
-                            when (it.videoStatus) {
-                                DOWNLOAD_RUNNING -> {
+                        withContext(Dispatchers.Main){
+                            when(it.videoStatus)
+                            {
+                                DOWNLOAD_RUNNING->{
                                     showToast("Video is Downloading Please Wait")
                                 }
-
-                                DOWNLOAD_PAUSE -> {
+                                DOWNLOAD_PAUSE->{
                                     showToast("Video is Paused")
                                 }
-
-                                DOWNLOADED -> {
+                                DOWNLOADED->{
                                     showToast("Video is  Already Downloaded")
                                 }
                             }
@@ -259,12 +231,8 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     override fun onResume() {
         super.onResume()
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-            videoDownloadReceiver, IntentFilter(DownloadService.VIDEO_DOWNLOAD_ACTION)
-        )
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-            percentageReceiver, IntentFilter(DownloadService.VIDEO_DOWNLOAD_PROGRESS)
-        )
+        LocalBroadcastManager.getInstance(this).registerReceiver(videoDownloadReceiver, IntentFilter(DownloadService.VIDEO_DOWNLOAD_ACTION))
+        LocalBroadcastManager.getInstance(this).registerReceiver(percentageReceiver, IntentFilter(DownloadService.VIDEO_DOWNLOAD_PROGRESS))
 
     }
 
@@ -293,7 +261,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     private fun resumeDownloadVideo(pos: Int, videoId: String, type: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            careerwillDatabase?.downloadDao()?.getVideoData(videoId, userId, courseId)?.let {
+            careerwillDatabase?.downloadDao()?.getVideoData(videoId, userId,courseId)?.let {
                 withContext(Dispatchers.Main) {
                     resumeVideo(it)
                 }
@@ -306,10 +274,8 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
         videoDownload?.apply {
             when (videoDownload.videoStatus) {
                 DOWNLOAD_RUNNING, DOWNLOAD_PAUSE, DOWNLOADED -> {
-                    val file =
-                        File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADED_VIDEOS + videoDownload.fileName + ".mp4")
-                    val fileProcessing =
-                        File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADING_VIDEOS + videoDownload.fileName + ".mp4")
+                    val file = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADED_VIDEOS + videoDownload.fileName + ".mp4")
+                    val fileProcessing = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADING_VIDEOS + videoDownload.fileName + ".mp4")
                     when (videoDownload.percentage) {
                         100 -> {
                             if (fileProcessing.exists()) {
@@ -366,7 +332,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     private fun pauseVideo(videoId: String, type: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            careerwillDatabase?.downloadDao()?.getVideoData(videoId, userId, courseId)?.let {
+            careerwillDatabase?.downloadDao()?.getVideoData(videoId, userId,courseId)?.let {
                 withContext(Dispatchers.Main) {
                     it.let {
                         if ((DownloadService.videoId == it.videoId) && it.percentage > 0) {
@@ -390,13 +356,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
             }
             CoroutineScope(Dispatchers.IO).launch {
                 careerwillDatabase?.downloadDao()?.updateVideoStatus(
-                    adapterData.videoId,
-                    "0",
-                    "Downloading Running",
-                    adapterData.percentage,
-                    userId,
-                    courseId
-                )?.let {
+                    adapterData.videoId, "0", "Downloading Running", adapterData.percentage, userId,courseId)?.let {
                     withContext(Dispatchers.Main) {
                         if (it > -1) {
                             val cpyList = downloadVideoList.toMutableList()
@@ -411,21 +371,13 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
                                     videoDownloadIntent.apply {
                                         putExtra(DownloadService.VIDEONAME, adapterData.name)
-                                        putExtra(
-                                            DownloadService.DOWNLOAD_SERVICE_ID, adapterData.videoId
-                                        )
+                                        putExtra(DownloadService.DOWNLOAD_SERVICE_ID, adapterData.videoId)
                                         putExtra(DownloadService.URL, adapterData.videoUrl)
                                         putExtra("userId", userId)
-                                        putExtra(
-                                            "filePath",
-                                            "${adapterData.videoId}_${userId}_${courseId}"
-                                        )
+                                        putExtra("filePath", "${adapterData.videoId}_${userId}_${courseId}")
                                         putExtra("status", "Downloading Running")
                                         putExtra("course_id", courseId)
-                                        putExtra(
-                                            DownloadService.FILEDOWNLOADSTATUS,
-                                            adapterData.percentage > 0
-                                        )
+                                        putExtra(DownloadService.FILEDOWNLOADSTATUS, adapterData.percentage > 0)
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                             startForegroundService(videoDownloadIntent)
                                         } else {
@@ -438,7 +390,8 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
                     }
                 }
             }
-        } catch (e: java.lang.Exception) {
+        }catch (e:java.lang.Exception)
+        {
             e.printStackTrace()
         }
 
@@ -456,7 +409,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
                                 downloadAdapter.submitList(list)
                                 downloadVideoList = list
                             } else {
-                                downloadVideoModel.getAllUserData(userId, courseId)
+                                downloadVideoModel.getAllUserData(userId,courseId)
                             }
 
                         }
@@ -483,18 +436,18 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
                 }
 
                 DownloadService.VIDEO_DOWNLOAD_CANCELLED, 2021 -> {
-                    downloadVideoModel.getAllUserData(userId, courseId)
+                    downloadVideoModel.getAllUserData(userId,courseId)
                 }
 
                 DownloadService.EXCEPTION_OCCURRED -> {
                     showToast("No internet connection")
-                    downloadVideoModel.getAllUserData(userId, courseId)
+                    downloadVideoModel.getAllUserData(userId,courseId)
 
                 }
 
                 DownloadService.NOT_AVAILABLE_ON_SERVER -> {
                     showToast("Server issue please retry again")
-                    downloadVideoModel.getAllUserData(userId, courseId)
+                    downloadVideoModel.getAllUserData(userId,courseId)
                 }
 
                 DownloadService.VIDEO_DOWNLOAD_STARTED -> {
@@ -511,7 +464,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     private fun completeReceiver(videoId: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            careerwillDatabase?.downloadDao()?.getVideoData(videoId, userId, courseId)
+            careerwillDatabase?.downloadDao()?.getVideoData(videoId, userId,courseId)
                 ?.let { videoDownloadData ->
                     videoDownloadData.videoId.let {
                         val cpyList = downloadVideoList.toMutableList()
@@ -532,8 +485,8 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
     private fun videoDownloadStarted(videoId: String) {
         if (downloadVideoList.isEmpty()) {
             CoroutineScope(Dispatchers.IO).launch {
-                careerwillDatabase?.downloadDao()
-                    ?.getVideoIsComplete(videoId, userId, "0", courseId)?.let { videoDownloadData ->
+                careerwillDatabase?.downloadDao()?.getVideoIsComplete(videoId, userId, "0",courseId)
+                    ?.let { videoDownloadData ->
                         videoDownloadData.videoId.let {
                             val cpyList = downloadVideoList.toMutableList()
                             cpyList.indices.find { it -> cpyList[it].videoId == videoId }
@@ -556,7 +509,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
             val videoId = intent.getStringExtra(DownloadService.VIDEOID)
             videoId?.let {
                 CoroutineScope(Dispatchers.IO).launch {
-                    careerwillDatabase?.downloadDao()?.getVideoIsComplete(it, userId, "0", courseId)
+                    careerwillDatabase?.downloadDao()?.getVideoIsComplete(it, userId, "0",courseId)
                         ?.let { data ->
                             data.videoId.let {
                                 val cpyList = downloadVideoList.toMutableList()
@@ -591,31 +544,30 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
     }
 
     override fun clickOnDownloadVide(downloadVideoTable: DownloadVideoTable) {
-        if (downloadVideoTable.percentage >= 100) {
-            val file =
-                File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADED_VIDEOS + downloadVideoTable.fileName + ".mp4")
-            val fileProcessing =
-                File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADING_VIDEOS + downloadVideoTable.fileName + ".mp4")
+        if (downloadVideoTable.percentage>=100)
+        {
+            val file = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADED_VIDEOS + downloadVideoTable.fileName + ".mp4")
+            val fileProcessing = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADING_VIDEOS + downloadVideoTable.fileName + ".mp4")
 
-            if (file.exists()) {
-                val bundle = Bundle()
+            if (file.exists())
+            {
+                val bundle =Bundle()
                 bundle.apply {
-                    putBoolean("videoType", false)
-                    putString("password", downloadVideoTable.token)
-                    putBoolean("offline", true)
-                    putString("filePath", file.absolutePath.toString())
+                    putBoolean("videoType",false)
+                    putString("password",downloadVideoTable.token)
+                    putBoolean("offline",true)
+                    putString("filePath",file.absolutePath.toString())
                 }
-                Intent(this, VideoPlayer::class.java).apply {
-                    putExtras(bundle)
-                    startActivity(this)
-                }
-            } else if (fileProcessing.exists()) {
-                val bundle = Bundle()
+                Intent(this, VideoPlayer::class.java).apply { putExtras(bundle)
+                    startActivity(this) }
+            }else if (fileProcessing.exists())
+            {
+                val bundle =Bundle()
                 bundle.apply {
-                    putBoolean("videoType", false)
-                    putString("password", downloadVideoTable.token)
-                    putBoolean("offline", true)
-                    putString("filePath", fileProcessing.absolutePath.toString())
+                    putBoolean("videoType",false)
+                    putString("password",downloadVideoTable.token)
+                    putBoolean("offline",true)
+                    putString("filePath",fileProcessing.absolutePath.toString())
                 }
                 Intent(this, VideoPlayer::class.java).apply {
                     putExtras(bundle)
