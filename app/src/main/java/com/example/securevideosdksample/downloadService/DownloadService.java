@@ -126,7 +126,7 @@ public class DownloadService extends CustomIntentService {
         userId = intent.getStringExtra("userId");
         filePath = intent.getStringExtra("filePath");
         courseId = intent.getStringExtra("course_id");
-
+        
 
         try {
             mBuilder = new NotificationCompat.Builder(getApplicationContext(), getPackageName()).setContentTitle(videoName).setOngoing(true).setAutoCancel(true).setSmallIcon(android.R.drawable.stat_sys_download).setStyle(new NotificationCompat.BigTextStyle().bigText("")).setPriority(Notification.PRIORITY_MAX).setContentText("Preparing...").setTicker("Preparing...");
@@ -216,8 +216,7 @@ public class DownloadService extends CustomIntentService {
 
                                 if (!Objects.requireNonNull(downloadingFile.getParentFile()).exists())
                                     downloadingFile.getParentFile().mkdirs();
-                                if (!downloadingFile.exists())
-                                    downloadingFile.createNewFile();
+                                if (!downloadingFile.exists()) downloadingFile.createNewFile();
 
                                 if (isResumed) {
                                     publishResults(downloadingFile.getAbsolutePath(), VIDEO_DOWNLOAD_RESUMED, "");
@@ -337,8 +336,7 @@ public class DownloadService extends CustomIntentService {
                                                 fileOutput.close();
                                             }
 
-                                            if (inputStream != null)
-                                                inputStream.close();
+                                            if (inputStream != null) inputStream.close();
                                             if (mNotificationManager != null) {
                                                 mNotificationManager.cancel(11111);
                                             }
@@ -350,8 +348,7 @@ public class DownloadService extends CustomIntentService {
                                             fileOutput.flush();
                                             fileOutput.close();
                                             inputStream.close();
-                                            if (downloadingFile.exists())
-                                                downloadingFile.delete();
+                                            if (downloadingFile.exists()) downloadingFile.delete();
 
                                             if (mNotificationManager != null) {
                                                 mNotificationManager.cancel(11111);
@@ -364,15 +361,13 @@ public class DownloadService extends CustomIntentService {
                                     }
                                 }
                             } else {
-                                if (downloadingFile.exists())
-                                    downloadingFile.delete();
+                                if (downloadingFile.exists()) downloadingFile.delete();
                                 notifyDownloadState(videoName, "Not Enough Memory Space");
                                 publishResults(downloadingFile.getAbsolutePath(), videoId, NOT_ENOUGH_MEMORY, "Not Enough Memory Space");
                             }
 
                         } else {
-                            if (downloadingFile.exists())
-                                downloadingFile.delete();
+                            if (downloadingFile.exists()) downloadingFile.delete();
 
                             if (responseCode == HTTP_NOT_FOUND) {
                                 notifyDownloadState(videoId, "Video not found!!!");
@@ -397,8 +392,7 @@ public class DownloadService extends CustomIntentService {
                                 fileOutput.close();
                             }
 
-                            if (inputStream != null)
-                                inputStream.close();
+                            if (inputStream != null) inputStream.close();
                             if (mNotificationManager != null) {
                                 mNotificationManager.cancel(11111);
                             }
@@ -416,8 +410,7 @@ public class DownloadService extends CustomIntentService {
                                 fileOutput.flush();
                                 fileOutput.close();
                             }
-                            if (inputStream != null)
-                                inputStream.close();
+                            if (inputStream != null) inputStream.close();
                             if (mNotificationManager != null) {
                                 mNotificationManager.cancel(11111);
                             }
@@ -436,16 +429,14 @@ public class DownloadService extends CustomIntentService {
                                     fileOutput.close();
                                 }
 
-                                if (inputStream != null)
-                                    inputStream.close();
+                                if (inputStream != null) inputStream.close();
                                 if (mNotificationManager != null) {
                                     mNotificationManager.cancel(11111);
                                 }
                                 notifyDownloadState(videoName, "Internet Issue. Download is Pause!!!");
                                 DownloadVideoTable downloadVideoTable1 = sanskritiDatabase.downloadDao().getVideo(videoId, "0", userId, courseId);
                                 if (downloadVideoTable1 == null || downloadVideoTable1.getTotalDownloadLocale() == 0) {
-                                    if (downloadingFile.exists())
-                                        downloadingFile.delete();
+                                    if (downloadingFile.exists()) downloadingFile.delete();
 
                                     String base64 = url;
                                     sanskritiDatabase.downloadDao().updateVideoFileLength(videoId, downloadVideoTable1 != null ? downloadVideoTable1.getOriginalFileLengthString() : "0", downloadVideoTable1 != null ? downloadVideoTable1.getTotalDownloadLocale() : 0, downloadVideoTable1 != null ? downloadVideoTable1.getLengthInMb() : "", downloadVideoTable1 != null ? downloadVideoTable1.getPercentage() : 0, "0", "Downloading Pause", base64, courseId);
@@ -461,15 +452,13 @@ public class DownloadService extends CustomIntentService {
                         } else {
                             notifyDownloadState(videoName, "Internet Issue. Download is not completed Please retry!!!");
                             publishResults(downloadingFile.getAbsolutePath(), VIDEO_DOWNLOAD_PAUSED, "");
-                            if (downloadingFile.exists())
-                                downloadingFile.delete();
+                            if (downloadingFile.exists()) downloadingFile.delete();
                         }
 
                     } else {
                         notifyDownloadState(videoName, "Couldn't save video. Not able to create file.");
                         publishResults(downloadingFile.getAbsolutePath(), videoId, EXCEPTION_OCCURRED, e.getMessage());
-                        if (downloadingFile.exists())
-                            downloadingFile.delete();
+                        if (downloadingFile.exists()) downloadingFile.delete();
                     }
                     Log.e(TAG, "Download error", e);
                 } finally {
@@ -480,8 +469,7 @@ public class DownloadService extends CustomIntentService {
                                 fileOutput.flush();
                                 fileOutput.close();
                             }
-                            if (inputStream != null)
-                                inputStream.close();
+                            if (inputStream != null) inputStream.close();
                             conn.disconnect();
                             // conn.getErrorStream().close();
                         } catch (Exception e) {
@@ -490,8 +478,7 @@ public class DownloadService extends CustomIntentService {
                     }
                 }
             } else if (isResumed) {
-                if (downloadingFile.exists())
-                    downloadingFile.delete();
+                if (downloadingFile.exists()) downloadingFile.delete();
 
                 if (mNotificationManager != null) {
                     mNotificationManager.cancel(11111);
@@ -499,8 +486,7 @@ public class DownloadService extends CustomIntentService {
                 notifyDownloadState(videoName, "Download is cancelled by user");
                 publishResults(downloadingFile.getAbsolutePath(), VIDEO_DOWNLOAD_CANCELLED, "");
             } else {
-                if (downloadingFile.exists())
-                    downloadingFile.delete();
+                if (downloadingFile.exists()) downloadingFile.delete();
 
                 if (mNotificationManager != null) {
                     mNotificationManager.cancel(11111);
@@ -663,8 +649,7 @@ public class DownloadService extends CustomIntentService {
                                     fileOutput.flush();
                                     fileOutput.close();
                                 }
-                                if (inputStream != null)
-                                    inputStream.close();
+                                if (inputStream != null) inputStream.close();
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -698,7 +683,7 @@ public class DownloadService extends CustomIntentService {
     public void onDestroy() {
         isServiceRunning = false;
         videoId = "";
-        courseId = "";
+        courseId="";
         super.onDestroy();
     }
 

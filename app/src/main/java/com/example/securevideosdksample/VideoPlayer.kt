@@ -1,12 +1,15 @@
 package com.example.securevideosdksample
 
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
@@ -23,6 +26,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.securevideosdksample.databinding.VideoPlayerBinding
 import com.example.securevideosdksample.download.activity.DownloadedVideoActivity
 import com.example.securevideosdksample.downloadService.DownloadService
@@ -103,12 +107,11 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
     val downloadList = mutableListOf<UrlResponse>()
     val onlinePlayList = mutableListOf<UrlResponse>()
 
-    /* set your cred details*/
     val siteId = "XX"
     val userId = "XX"
-    private val courseId = "XXXXX"
-    val accesskey = "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
-    val secretKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    private val courseId = "XXX"
+    val accesskey = "XXXXXXXXXXXXXXXXXXXXXX"
+    val secretKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
     /////////recorder
     var mediaId = ""
@@ -164,14 +167,198 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                     ?.prePareLicense(siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID)
                 licenceUrl?.let { it1 -> playDrmVideo(vodUrl, it1) }
             }
+
+            ////////////video Download/////////
+            LocalBroadcastManager.getInstance(this).registerReceiver(
+                videoDownloadReceiver, IntentFilter(DownloadService.VIDEO_DOWNLOAD_ACTION)
+            )
+            LocalBroadcastManager.getInstance(this).registerReceiver(
+                percentageReceiver, IntentFilter(DownloadService.VIDEO_DOWNLOAD_PROGRESS)
+            )
+
+        }
+    }
+
+    private fun completeReceiver(videoId: String) {
+        CareerwillDatabase.getInstance(this)?.let {
+            CoroutineScope(Dispatchers.IO).launch {
+                it.downloadDao().getVideoData(videoId, userId, courseId)?.let { data ->
+                        withContext(Dispatchers.Main) {
+                            if (data.percentage == 100) {
+                                binding.playVideoDownloaded.isVisible = true
+                                binding.videoDownload.isVisible = false
+                                binding.deleteVideo.isVisible = true
+                                binding.progressCvr.visibility = View.GONE
+                                binding.parentLayout.visibility = View.GONE
+                                getVideoOfflineData()
+
+                            } else {
+                                binding.videoTitle.text = data.name
+                                binding.pauseBtn.isVisible = true
+
+                                data.videoStatus.let {
+                                    when (it) {
+                                        "Downloading Pause" -> {
+                                            binding.pauseBtn.setImageDrawable(
+                                                ContextCompat.getDrawable(
+                                                    this@VideoPlayer, R.drawable.play_button
+                                                )
+                                            )
+                                        }
+
+                                        "Downloading Running" -> {
+                                            binding.pauseBtn.setImageDrawable(
+                                                ContextCompat.getDrawable(
+                                                    this@VideoPlayer,
+                                                    R.drawable.ic_video_download_pause
+                                                )
+                                            )
+                                        }
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+            }
+
         }
 
+    }
+
+
+    private val videoDownloadReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val serviceStatus = intent.getIntExtra("result", -1)
+            val videoId = intent.getStringExtra(DownloadService.VIDEOID)
+            when (serviceStatus) {
+                DownloadService.VIDEO_DOWNLOAD_PAUSED, DownloadService.VIDEO_DOWNLOAD_SUCCESSFUL -> {
+                    videoId?.let {
+                        completeReceiver(videoId)
+                    }
+                }
+
+                DownloadService.VIDEO_FILE_EXIST -> {
+                    showToast("Retry Downalod")
+                }
+
+                DownloadService.VIDEO_DOWNLOAD_CANCELLED, 2021 -> {
+                    binding.videoTitle.text = ""
+                    binding.fileMb.text = ""
+                    binding.progressValue.progress = 0
+                    binding.percentageValue.text = ""
+
+                    binding.pauseBtn.isVisible = false
+                    binding.parentLayout.isVisible = false
+//                    downloadVideoModel.getAllUserData(userId,courseId)
+                }
+
+                DownloadService.EXCEPTION_OCCURRED -> {
+                    showToast("No internet connection")
+//                    downloadVideoModel.getAllUserData(userId,courseId)
+
+                }
+
+                DownloadService.NOT_AVAILABLE_ON_SERVER -> {
+                    showToast("Server issue please retry again")
+//                    downloadVideoModel.getAllUserData(userId,courseId)
+                }
+
+                DownloadService.VIDEO_DOWNLOAD_STARTED -> {
+                    if (!binding.parentLayout.isVisible) {
+                        videoId?.let {
+                            binding.parentLayout.isVisible = true
+                            videoDownloadStarted(videoId)
+                        }
+                    }
+
+
+                }
+            }
+        }
+    }
+    private val percentageReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val videoId = intent.getStringExtra(DownloadService.VIDEOID)
+            videoId?.let {
+                CareerwillDatabase.getInstance(this@VideoPlayer)?.let { db ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        db.downloadDao().getVideoIsComplete(it, userId, "0", courseId)
+                            ?.let { data ->
+                                withContext(Dispatchers.Main) {
+                                    binding.fileMb.text = data.lengthInMb
+                                    if (data.percentage == 100) {
+                                        binding.deleteVideo.isVisible = true
+                                        binding.progressCvr.visibility = View.GONE
+                                    } else {
+                                        binding.videoTitle.text = data.name
+                                        binding.pauseBtn.isVisible = true
+
+
+                                        binding.progressValue.progress = data.percentage
+                                        binding.percentageValue.text = "${data.percentage} % Done"
+                                        data.videoStatus.let {
+                                            when (it) {
+                                                "Downloading Pause" -> {
+                                                    binding.pauseBtn.setImageDrawable(
+                                                        ContextCompat.getDrawable(
+                                                            context, R.drawable.play_button
+                                                        )
+                                                    )
+                                                }
+
+                                                "Downloading Running" -> {
+                                                    binding.pauseBtn.setImageDrawable(
+                                                        ContextCompat.getDrawable(
+                                                            context,
+                                                            R.drawable.ic_video_download_pause
+                                                        )
+                                                    )
+                                                }
+
+                                            }
+
+                                        }
+                                    }
+
+                                }
+                            }
+                    }
+
+                }
+            }
+
+
+        }
+    }
+
+
+    private fun videoDownloadStarted(videoId: String) {
+        CareerwillDatabase.getInstance(this)?.let {
+            CoroutineScope(Dispatchers.IO).launch {
+                it.downloadDao().getVideoIsComplete(videoId, userId, "0", courseId)
+                    ?.let { videoDownloadData ->
+                        withContext(Dispatchers.Main) {
+                            binding.videoTitle.text = videoDownloadData.name
+                            binding.pauseBtn.isVisible = true
+                        }
+                    }
+            }
+        }
 
     }
 
 
     override fun onPause() {
         super.onPause()
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(videoDownloadReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(percentageReceiver)
 
         if (Util.SDK_INT <= 23) {
             releasePlayer()
@@ -226,6 +413,7 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
             binding.download.isVisible = false
         } else {
             if (!videoType) {
+                binding.videoDownload.isVisible = true
                 CareerwillDatabase.getInstance(this)?.let {
                     CoroutineScope(Dispatchers.IO).launch {
                         it.downloadDao().getVideoData(videoId, userId, courseId)?.let {
@@ -340,7 +528,393 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
             }
 
         }
+
+        binding.videoDownload.setOnClickListener {
+            if (downloadList.size > 0) {
+                pausePlayer()
+                downloadVideoDialog(downloadList)
+            }
+        }
+
+        binding.pauseBtn.setOnClickListener {
+            CareerwillDatabase.getInstance(this)?.let {
+                CoroutineScope(Dispatchers.IO).launch {
+                    it.downloadDao().getVideoData(videoId, userId, courseId)?.let { data ->
+                        withContext(Dispatchers.Main) {
+                            data.videoStatus.let {
+                                when (it) {
+                                    "Downloading Running" -> {
+                                        onVideoClick(videoDownload = data, type = "PAUSE")
+                                    }
+
+                                    "Downloading Pause" -> {
+                                        onVideoClick(videoDownload = data, type = "RESUME")
+                                    }
+
+                                }
+
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+        binding.cancelBtn.setOnClickListener {
+
+            android.app.AlertDialog.Builder(this).setTitle("Delete entry")
+                .setMessage("Are You Sure You Want to Delete Video ?")
+                .setPositiveButton("yes") { _, _ ->
+                    CareerwillDatabase.getInstance(this)?.let {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            it.downloadDao().getVideoData(videoId, userId, courseId)?.let { data ->
+                                withContext(Dispatchers.Main) {
+                                    onVideoClick(videoDownload = data, type = "CANCEL")
+
+                                }
+                            }
+                        }
+                    }
+
+                }.setNegativeButton("No", null).setIcon(android.R.drawable.ic_dialog_alert).show()
+
+
+        }
+        binding.deleteVideo.setOnClickListener {
+
+            android.app.AlertDialog.Builder(this).setTitle("Delete entry")
+                .setMessage("Are You Sure You Want to Delete Video ?")
+                .setPositiveButton("yes") { _, _ ->
+                    CareerwillDatabase.getInstance(this)?.let {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            it.downloadDao().getVideoData(videoId, userId, courseId)?.let { data ->
+                                withContext(Dispatchers.Main) {
+                                    onVideoClick(videoDownload = data, type = "CANCEL")
+
+                                }
+                            }
+                        }
+                    }
+
+                }.setNegativeButton("No", null).setIcon(android.R.drawable.ic_dialog_alert).show()
+
+
+        }
+
+
     }
+
+    private fun getVideoOfflineData() {
+        CareerwillDatabase.getInstance(this)?.let {
+            CoroutineScope(Dispatchers.IO).launch {
+                it.downloadDao().getVideoData(videoId, userId, courseId)?.let {
+                    withContext(Dispatchers.Main) {
+                        offlinePlay(it)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun onVideoClick(pos: Int = -1, videoDownload: DownloadVideoTable?, type: String?) {
+        when (type) {
+            DownloadedVideoActivity.CANCEL -> {
+                deleteVideo(pos, videoDownload);
+            }
+
+            DownloadedVideoActivity.PAUSE -> {
+                videoDownload?.let {
+                    pauseVideo(it.videoId, type)
+
+                }
+            }
+
+            DownloadedVideoActivity.RESUME -> {
+                videoDownload?.let {
+                    resumeDownloadVideo(pos, it.videoId, type)
+
+                }
+            }
+        }
+    }
+
+    private fun resumeDownloadVideo(pos: Int, videoId: String, type: String) {
+        CareerwillDatabase.getInstance(this)?.let { careerwillDatabase ->
+            CoroutineScope(Dispatchers.IO).launch {
+                careerwillDatabase?.downloadDao()?.getVideoData(videoId, userId, courseId)?.let {
+                    withContext(Dispatchers.Main) {
+                        resumeVideo(it)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun deleteVideo(pos: Int, videoDownload: DownloadVideoTable?) {
+        videoDownload?.apply {
+            when (videoDownload.videoStatus) {
+                DownloadedVideoActivity.DOWNLOAD_RUNNING, DownloadedVideoActivity.DOWNLOAD_PAUSE, DownloadedVideoActivity.DOWNLOADED -> {
+                    val file =
+                        File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADED_VIDEOS + videoDownload.fileName + ".mp4")
+                    val fileProcessing =
+                        File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADING_VIDEOS + videoDownload.fileName + ".mp4")
+                    when (videoDownload.percentage) {
+                        100 -> {
+                            if (fileProcessing.exists()) {
+                                fileProcessing.delete()
+                            }
+                            if (file.exists()) {
+                                file.delete()
+                            }
+                            deleteVideoFromDB(pos, videoDownload.videoId)
+
+                        }
+
+                        else -> {
+                            when (videoDownload.videoStatus) {
+                                DownloadedVideoActivity.DOWNLOAD_PAUSE -> {
+                                    if (fileProcessing.exists()) {
+                                        fileProcessing.delete()
+                                    }
+
+                                    if (file.exists()) {
+                                        file.delete()
+                                    }
+                                    deleteVideoFromDB(pos, videoDownload.videoId)
+                                }
+
+                                else -> {
+                                    if (DownloadService.videoId == videoDownload.videoId) {
+                                        try {
+                                            DownloadService.action = DownloadService.CANCEL
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
+                                        }
+                                    } else {
+                                        if (fileProcessing.exists()) {
+                                            fileProcessing.delete()
+                                        }
+                                        if (file.exists()) {
+                                            file.delete()
+                                        }
+                                        deleteVideoFromDB(pos, videoDownload.videoId)
+
+
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
+        }
+    }
+
+    private fun deleteVideoFromDB(pos: Int, videoId: String) {
+        CareerwillDatabase.getInstance(this)?.let { careerwillDatabase ->
+            CoroutineScope(Dispatchers.IO).launch {
+                careerwillDatabase.downloadDao()?.deleteVideoSuspend(videoId, userId, courseId)
+                    ?.let { status ->
+                        withContext(Dispatchers.Main) {
+                            if (status > -1) {
+                                binding.videoTitle.text = ""
+                                binding.fileMb.text = ""
+                                binding.progressValue.progress = 0
+                                binding.percentageValue.text = ""
+                                binding.pauseBtn.isVisible = false
+                                binding.parentLayout.isVisible = false
+                                binding.playVideoDownloaded.isVisible = false
+                                binding.videoDownload.isVisible = true
+
+                                binding.deleteVideo.isVisible = false
+                                binding.progressCvr.visibility = View.VISIBLE
+
+                            }
+                        }
+
+                    }
+            }
+        }
+    }
+
+
+    private fun pauseVideo(videoId: String, type: String) {
+        CareerwillDatabase.getInstance(this)?.let { careerwillDatabase ->
+            CoroutineScope(Dispatchers.IO).launch {
+                careerwillDatabase.downloadDao()?.getVideoData(videoId, userId, courseId)?.let {
+                    withContext(Dispatchers.Main) {
+                        it.let {
+                            if ((DownloadService.videoId == it.videoId) && it.percentage > 0) {
+                                DownloadService.action = DownloadService.PAUSE
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+    }
+
+    private fun resumeVideo(adapterData: DownloadVideoTable) {
+        try {
+            var videoDownloadIntent: Intent? = null
+            videoDownloadIntent = Intent(this, DownloadService::class.java)
+            when (adapterData.totalDownloadLocale) {
+                0L -> {
+                    adapterData.percentage = 0
+                }
+            }
+            CareerwillDatabase.getInstance(this)?.let { careerwillDatabase ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    careerwillDatabase.downloadDao()?.updateVideoStatus(
+                        adapterData.videoId,
+                        "0",
+                        "Downloading Running",
+                        adapterData.percentage,
+                        userId,
+                        courseId
+                    )?.let {
+                        withContext(Dispatchers.Main) {
+                            if (it > -1) {
+                                videoDownloadIntent.apply {
+                                    putExtra(DownloadService.VIDEONAME, adapterData.name)
+                                    putExtra(
+                                        DownloadService.DOWNLOAD_SERVICE_ID, adapterData.videoId
+                                    )
+                                    putExtra(DownloadService.URL, adapterData.videoUrl)
+                                    putExtra("userId", userId)
+                                    putExtra(
+                                        "filePath", "${adapterData.videoId}_${userId}_${courseId}"
+                                    )
+                                    putExtra("status", "Downloading Running")
+                                    putExtra("course_id", courseId)
+                                    putExtra(
+                                        DownloadService.FILEDOWNLOADSTATUS,
+                                        adapterData.percentage > 0
+                                    )
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        startForegroundService(videoDownloadIntent)
+                                    } else {
+                                        startService(videoDownloadIntent)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+            }
+
+
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+
+    }
+
+
+    private fun downloadVideoDialog(link: List<UrlResponse>?) {
+        var alertPosition = -1
+        link?.map { it.label }?.toTypedArray()?.let {
+            val alertDialog = AlertDialog.Builder(this@VideoPlayer)
+            alertDialog.setTitle("Download Video")
+            alertDialog.setSingleChoiceItems(it, (alertPosition)) { _, which ->
+                alertPosition = which
+            }
+
+            alertDialog.setPositiveButton("OK") { dialog: DialogInterface?, which: Int ->
+                dialog?.dismiss()
+                dialog?.cancel()
+                beginDownload(downloadList[alertPosition])
+            }
+
+            alertDialog.setNegativeButton("Cancel") { dialog: DialogInterface, which: Int ->
+                dialog.dismiss()
+                dialog.cancel()
+            }
+
+            alertDialog.setOnCancelListener { it ->
+                it.cancel()
+                it.dismiss()
+            }
+
+            val alert = alertDialog.create()
+            alert.setCanceledOnTouchOutside(false)
+            alert.show()
+        }
+    }
+
+    private fun beginDownload(urlResponse: UrlResponse) {
+        val videoname = urlResponse.url.substring(urlResponse.url.lastIndexOf('/') + 1)
+        val fileName = "${videoId}_${userId}_${courseId}"
+        val downloadTable = DownloadVideoTable(
+            name = videoname,
+            videoId = videoId,
+            videoUrl = urlResponse.url,
+            token = urlResponse.meta.password,
+            videoStatus = "Downloading Running",
+            thumbnail_url = "",
+            userId = userId,
+            fileName = fileName,
+            courseId = courseId
+        )
+        CareerwillDatabase.getInstance(this)?.let { db ->
+            CoroutineScope(Dispatchers.IO).launch {
+                val result = db.downloadDao().isRecordExist(videoId, userId, courseId)
+                if (!result) {
+                    db.downloadDao().insert(downloadTable).let {
+                        withContext(Dispatchers.Main) {
+                            val videoDownloadIntent =
+                                Intent(this@VideoPlayer, DownloadService::class.java)
+                            videoDownloadIntent.apply {
+                                putExtra(DownloadService.VIDEONAME, videoname)
+                                putExtra(DownloadService.DOWNLOAD_SERVICE_ID, videoId)
+                                putExtra(DownloadService.URL, urlResponse.url)
+                                putExtra("userId", userId)
+                                putExtra("filePath", "${videoId}_${userId}_${courseId}")
+                                putExtra("status", "Downloading Running")
+                                putExtra("course_id", courseId)
+                                putExtra(DownloadService.FILEDOWNLOADSTATUS, false)
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                startForegroundService(videoDownloadIntent)
+                            } else {
+                                startService(videoDownloadIntent)
+                            }
+                        }
+                    }
+
+                } else {
+                    db.downloadDao().getVideoData(videoId, userId, courseId)?.let {
+                        withContext(Dispatchers.Main) {
+                            when (it.videoStatus) {
+                                DownloadedVideoActivity.DOWNLOAD_RUNNING -> {
+                                    showToast("Video is Downloading Please Wait")
+                                }
+
+                                DownloadedVideoActivity.DOWNLOAD_PAUSE -> {
+                                    showToast("Video is Paused")
+                                    resumeVideo(it)
+                                }
+
+                                DownloadedVideoActivity.DOWNLOADED -> {
+                                    showToast("Video is  Already Downloaded")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+        }
+
+    }
+
 
     private fun alertDialog(link: List<UrlResponse>?) {
         var alertPosition = selectedQualityIndex
@@ -390,6 +964,7 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
             File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!.absolutePath + DownloadService.DOWNLOADING_VIDEOS + downloadVideoTable.fileName + ".mp4")
 
         if (downloadVideoTable.percentage >= 100) {
+            binding.videoDownload.isVisible = false
             if (file.exists()) {
                 downloadVideoData = downloadVideoTable
                 binding.playVideoDownloaded.isVisible = true
@@ -397,6 +972,9 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                 downloadVideoData = downloadVideoTable
                 binding.playVideoDownloaded.isVisible = true
             }
+        } else {
+            binding.videoDownload.isVisible = true
+            binding.parentLayout.isVisible = true
         }
         binding.playVideoDownloaded.setOnClickListener {
             downloadVideoData?.let {

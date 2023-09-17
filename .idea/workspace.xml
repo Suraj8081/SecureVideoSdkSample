@@ -11,12 +11,13 @@
   <component name="ChangeListManager">
     <list default="true" id="27e89c20-2dec-4ebe-93a3-6e4f4024bd97" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/app/build.gradle" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/MainActivity.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/VideoPlayer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/VideoPlayer.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/download/activity/DownloadedVideoActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/download/activity/DownloadedVideoActivity.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/download/adapter/DownloadAdapter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/download/adapter/DownloadAdapter.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/room/dao/DownloadDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/room/dao/DownloadDao.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/downloadService/DownloadService.java" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/downloadService/DownloadService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/model/Meta.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/model/Meta.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/model/UrlResponse.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/example/securevideosdksample/model/UrlResponse.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/video_player.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/video_player.xml" afterDir="false" />
     </list>
@@ -73,6 +74,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
+    "android-custom-view/home/suraj/AndroidStudioProjects/SecureVideoSdkSample/app/src/main/java/com/example/securevideosdksample/TrackSelectionView.java_SELECTED": "TrackSelectionView",
     "cidr.known.project.marker": "true",
     "last_opened_file_path": "/home/suraj/AndroidStudioProjects/WebViewcode/WebView",
     "project.structure.last.edited": "SDK Location",
