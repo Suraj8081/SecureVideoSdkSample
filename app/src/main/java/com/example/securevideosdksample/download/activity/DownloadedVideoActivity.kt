@@ -18,19 +18,19 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.example.securevideosdksample.VideoPlayer
 import com.example.securevideosdksample.databinding.FragmentDownalodedVideoBinding
-import com.example.securevideosdksample.downloadService.DownloadService
-import com.example.securevideosdksample.model.UrlResponse
-import com.example.securevideosdksample.showToast
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.example.securevideosdksample.download.adapter.DownloadAdapter
 import com.example.securevideosdksample.download.interfaces.OnItemClick
+import com.example.securevideosdksample.downloadService.DownloadService
+import com.example.securevideosdksample.model.UrlResponse
 import com.example.securevideosdksample.room.CareerwillDatabase
 import com.example.securevideosdksample.room.table.DownloadVideoTable
 import com.example.securevideosdksample.room.viewModel.DownloadVideoModel
 import com.example.securevideosdksample.room.viewModel.MyViewModelFactory
+import com.example.securevideosdksample.showToast
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.example.securevideosdksample.VideoPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -101,7 +101,7 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
         }
 
 
-        notficationPermisson()
+            notficationPermisson()
 
     }
 
@@ -209,19 +209,18 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
                         withContext(Dispatchers.Main){
                             when(it.videoStatus)
                             {
-                                DOWNLOAD_RUNNING->{
+                                DOWNLOAD_RUNNING ->{
                                     showToast("Video is Downloading Please Wait")
                                 }
-                                DOWNLOAD_PAUSE->{
+                                DOWNLOAD_PAUSE ->{
                                     showToast("Video is Paused")
                                 }
-                                DOWNLOADED->{
+                                DOWNLOADED ->{
                                     showToast("Video is  Already Downloaded")
                                 }
                             }
                         }
                     }
-
                 }
             }
         }
@@ -461,6 +460,31 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
             }
         }
     }
+    private val percentageReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val videoId = intent.getStringExtra(DownloadService.VIDEOID)
+            videoId?.let {
+                CoroutineScope(Dispatchers.IO).launch {
+                    careerwillDatabase?.downloadDao()?.getVideoIsComplete(it, userId, "0",courseId)?.let { data ->
+                            data.videoId.let {
+                                val cpyList = downloadVideoList.toMutableList()
+                                cpyList.indices.find { it -> cpyList[it].videoId == videoId }
+                                    ?.let { index ->
+                                        withContext(Dispatchers.Main) {
+                                            cpyList[index] = data
+                                            downloadAdapter.submitList(cpyList)
+                                            downloadVideoList = cpyList
+                                        }
+
+                                    }
+                            }
+                        }
+                }
+            }
+
+
+        }
+    }
 
     private fun completeReceiver(videoId: String) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -504,32 +528,6 @@ class DownloadedVideoActivity : AppCompatActivity(), OnItemClick {
 
     }
 
-    private val percentageReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val videoId = intent.getStringExtra(DownloadService.VIDEOID)
-            videoId?.let {
-                CoroutineScope(Dispatchers.IO).launch {
-                    careerwillDatabase?.downloadDao()?.getVideoIsComplete(it, userId, "0",courseId)
-                        ?.let { data ->
-                            data.videoId.let {
-                                val cpyList = downloadVideoList.toMutableList()
-                                cpyList.indices.find { it -> cpyList[it].videoId == videoId }
-                                    ?.let { index ->
-                                        withContext(Dispatchers.Main) {
-                                            cpyList[index] = data
-                                            downloadAdapter.submitList(cpyList)
-                                            downloadVideoList = cpyList
-                                        }
-
-                                    }
-                            }
-                        }
-                }
-            }
-
-
-        }
-    }
 
 
     override fun onPause() {

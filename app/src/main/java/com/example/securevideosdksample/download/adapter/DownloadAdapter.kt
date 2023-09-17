@@ -54,19 +54,11 @@ class DownloadAdapter(
                     videosDownload?.videoStatus?.let {
                         when (it) {
                             "Downloading Pause" -> {
-                                holder.binding.pauseBtn.setImageDrawable(
-                                    ContextCompat.getDrawable(
-                                        context, R.drawable.play_button
-                                    )
-                                )
+                                holder.binding.pauseBtn.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.play_button))
                             }
 
                             "Downloading Running" -> {
-                                holder.binding.pauseBtn.setImageDrawable(
-                                    ContextCompat.getDrawable(
-                                        context, R.drawable.ic_video_download_pause
-                                    )
-                                )
+                                holder.binding.pauseBtn.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_video_download_pause))
                             }
 
                         }
@@ -194,6 +186,4 @@ class MyDownloadsDiffUtil : DiffUtil.ItemCallback<DownloadVideoTable>() {
 
     }
 }
-
-
 
