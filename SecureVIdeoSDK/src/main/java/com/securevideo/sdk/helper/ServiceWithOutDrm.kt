@@ -18,7 +18,16 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.IOException
 
-class ServiceWithOutDrm(val context: Context, val initializeMyAppPlayer: InitializeMyAppPlayer?, userId: String, siteid: String, secretKey: String, mediaid: String, accessKey: String, isLive: Boolean) {
+class ServiceWithOutDrm(
+    val context: Context,
+    val initializeMyAppPlayer: InitializeMyAppPlayer?,
+    userId: String,
+    siteid: String,
+    secretKey: String,
+    mediaid: String,
+    accessKey: String,
+    isLive: Boolean
+) {
     private var deviceName: String? = null
     private var version: String? = null
 
@@ -30,24 +39,24 @@ class ServiceWithOutDrm(val context: Context, val initializeMyAppPlayer: Initial
             val policy = ThreadPolicy.Builder().permitAll().build()
             StrictMode.setThreadPolicy(policy)
         }
-        var apiType =""
-        if (isLive)
-        {
-            apiType="get-streaming-details"
+        var apiType = ""
+        if (isLive) {
+            apiType = "get-streaming-details"
 
-            linkPrepare(userId, siteid, secretKey, mediaid,accessKey,apiType)
-        }else{
-            apiType ="get-video-meta"
-            linkPrepare(userId, siteid, secretKey, mediaid,accessKey,apiType)
+            linkPrepare(userId, siteid, secretKey, mediaid, accessKey, apiType)
+        } else {
+            apiType = "get-video-meta"
+            linkPrepare(userId, siteid, secretKey, mediaid, accessKey, apiType)
         }
     }
 
     companion object {
-         const val baseUrl ="http://securevdo.com/"
+        const val baseUrl = "https://securevdo.com/"
         //////////////////////for vod///////////////
 
         //////////live///////////////
     }
+
     private fun getsdkverssion(activity: Context): Int {
         var version = 0
         try {
@@ -73,16 +82,40 @@ class ServiceWithOutDrm(val context: Context, val initializeMyAppPlayer: Initial
             userdetail.device = deviceName!!
             userdetail.version = version!!
             val data = Gson().toJson(userdetail)
-            val encyData = AES.encrypt(data,accessKey)
+            val encyData = AES.encrypt(data, accessKey)
             RetrofitClientInstance.getRetrofitInstance("$baseUrl/").let {
-                it.linkPrepare(secretKey, accountid, mediaid, encyData, "$baseUrl${apiType}")?.enqueue(object : Callback<ResponseBody?> {
-                        override fun onResponse(call: Call<ResponseBody?>, response: Response<ResponseBody?>) {
+                it.linkPrepare(secretKey, accountid, mediaid, encyData, "$baseUrl${apiType}")
+                    ?.enqueue(object : Callback<ResponseBody?> {
+                        override fun onResponse(
+                            call: Call<ResponseBody?>, response: Response<ResponseBody?>
+                        ) {
                             try {
-                                val decryptData = AES.decrypt(response.body()!!.string(),accessKey)
-                                val jsonObject = JSONObject(decryptData)
-                                Log.d("TAG", jsonObject.toString())
-                                val jsonObject1 = jsonObject.getJSONObject("data")
-                                PlayerHelper(jsonObject1.getString("hls_url"), context, jsonObject1.toString(), initializeMyAppPlayer)
+                                val decryptData = AES.decrypt(response.body()!!.string(), accessKey)
+                                if (decryptData.isNotEmpty()) {
+                                    val jsonObject = JSONObject(decryptData)
+                                    if (jsonObject.optBoolean("status")) {
+                                        val jsonObject1 = jsonObject.getJSONObject("data")
+                                        PlayerHelper(
+                                            jsonObject1.getString("hls_url"),
+                                            context,
+                                            jsonObject1.toString(),
+                                            initializeMyAppPlayer
+                                        )
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "" + jsonObject.optString("message"),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Response is Blank Please Try Again",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+
                             } catch (e: IOException) {
                                 e.printStackTrace()
                             } catch (e: JSONException) {
@@ -91,6 +124,8 @@ class ServiceWithOutDrm(val context: Context, val initializeMyAppPlayer: Initial
                         }
 
                         override fun onFailure(call: Call<ResponseBody?>, t: Throwable) {
+                            Toast.makeText(context, "" + t.message.toString(), Toast.LENGTH_SHORT)
+                                .show()
 
                         }
                     })
@@ -102,7 +137,12 @@ class ServiceWithOutDrm(val context: Context, val initializeMyAppPlayer: Initial
     }
 
 
-    class PlayerHelper(val itemUrl: String?, val _mActivity: Context?, val actualtoken: String, val initializePlayerService: InitializeMyAppPlayer?) {
+    class PlayerHelper(
+        val itemUrl: String?,
+        val _mActivity: Context?,
+        val actualtoken: String,
+        val initializePlayerService: InitializeMyAppPlayer?
+    ) {
         init {
             initializePlayer()
         }

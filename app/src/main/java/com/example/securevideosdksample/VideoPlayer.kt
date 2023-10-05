@@ -107,11 +107,11 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
     val downloadList = mutableListOf<UrlResponse>()
     val onlinePlayList = mutableListOf<UrlResponse>()
 
-    val siteId = "XX"
-    val userId = "XX"
-    private val courseId = "XXX"
-    val accesskey = "XXXXXXXXXXXXXXXXXXXXXX"
-    val secretKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    val siteId = "enter_site_id_here"
+    val userId = "enter_user_id"
+    private val courseId = "enter_course_id"
+    val accesskey = "enter_access_key_here"
+    val secretKey = "enter_secrect_key_here"
 
     /////////recorder
     var mediaId = ""
@@ -183,38 +183,35 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
         CareerwillDatabase.getInstance(this)?.let {
             CoroutineScope(Dispatchers.IO).launch {
                 it.downloadDao().getVideoData(videoId, userId, courseId)?.let { data ->
-                        withContext(Dispatchers.Main) {
-                            if (data.percentage == 100) {
-                                binding.playVideoDownloaded.isVisible = true
-                                binding.videoDownload.isVisible = false
-                                binding.deleteVideo.isVisible = true
-                                binding.progressCvr.visibility = View.GONE
-                                binding.parentLayout.visibility = View.GONE
-                                getVideoOfflineData()
+                    withContext(Dispatchers.Main) {
+                        if (data.percentage == 100) {
+                            binding.playVideoDownloaded.isVisible = true
+                            binding.videoDownload.isVisible = false
+                            binding.deleteVideo.isVisible = true
+                            binding.progressCvr.visibility = View.GONE
+                            binding.parentLayout.visibility = View.GONE
+                            getVideoOfflineData()
 
-                            } else {
-                                binding.videoTitle.text = data.name
-                                binding.pauseBtn.isVisible = true
+                        } else {
+                            binding.videoTitle.text = data.name
+                            binding.pauseBtn.isVisible = true
 
-                                data.videoStatus.let {
-                                    when (it) {
-                                        "Downloading Pause" -> {
-                                            binding.pauseBtn.setImageDrawable(
-                                                ContextCompat.getDrawable(
-                                                    this@VideoPlayer, R.drawable.play_button
-                                                )
+                            data.videoStatus.let {
+                                when (it) {
+                                    "Downloading Pause" -> {
+                                        binding.pauseBtn.setImageDrawable(
+                                            ContextCompat.getDrawable(
+                                                this@VideoPlayer, R.drawable.play_button
                                             )
-                                        }
+                                        )
+                                    }
 
-                                        "Downloading Running" -> {
-                                            binding.pauseBtn.setImageDrawable(
-                                                ContextCompat.getDrawable(
-                                                    this@VideoPlayer,
-                                                    R.drawable.ic_video_download_pause
-                                                )
+                                    "Downloading Running" -> {
+                                        binding.pauseBtn.setImageDrawable(
+                                            ContextCompat.getDrawable(
+                                                this@VideoPlayer, R.drawable.ic_video_download_pause
                                             )
-                                        }
-
+                                        )
                                     }
 
                                 }
@@ -224,6 +221,8 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                         }
 
                     }
+
+                }
 
             }
 
@@ -1141,8 +1140,8 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                     if (onlinePlayList.size > 0) {
                         val licenceUrl =
                             VideoPlayerInit.getInstance(this@VideoPlayer)?.prePareLicense(
-                                    siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID
-                                )
+                                siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID
+                            )
                         licenceUrl?.let { it1 -> playDrmVideo(vodUrl, it1) }
                     }
                 }
@@ -1337,8 +1336,8 @@ class VideoPlayer : AppCompatActivity(), InitializeMyAppPlayer {
                             if (onlinePlayList.size > 0) {
                                 val licenceUrl =
                                     VideoPlayerInit.getInstance(this@VideoPlayer)?.prePareLicense(
-                                            siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID
-                                        )
+                                        siteId, accesskey, mediaId, userId, 30, C.WIDEVINE_UUID
+                                    )
                                 licenceUrl?.let { it1 -> playDrmVideo(onlinePlayList[0].url, it1) }
                             }
                             if (downloadList.size > 0) {
