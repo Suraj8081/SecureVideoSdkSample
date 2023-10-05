@@ -25,7 +25,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
-//        binding!!.etUrl.setText("60075ff276")
         binding!!.btnVod.setOnClickListener {
             if (binding!!.etUrl.text.isNotEmpty()) {
                 val bundle = Bundle()

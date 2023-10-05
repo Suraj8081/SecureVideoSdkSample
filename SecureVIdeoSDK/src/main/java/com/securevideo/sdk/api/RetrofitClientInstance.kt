@@ -21,7 +21,7 @@ internal class RetrofitClientInstance : MultiDexApplication() {
             if (retrofit == null) {
                 val gson = GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create()
                 val interceptor = HttpLoggingInterceptor()
-                interceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
+                interceptor.setLevel(HttpLoggingInterceptor.Level.NONE)
                 val client =
                     httpClient.addInterceptor(interceptor).connectTimeout(60, TimeUnit.MINUTES)
                         .readTimeout(60, TimeUnit.MINUTES).writeTimeout(1, TimeUnit.MINUTES).build()
